@@ -4,6 +4,8 @@ Students will add tools here through reviewed pull requests.
 Each tool should do one understandable job and return an observation.
 """
 
+import os
+import time
 from playwright.sync_api import sync_playwright
 
 SITE_URL = "https://onyourmark.github.io/browser-agent-form/travel/"
@@ -61,3 +63,36 @@ def open_site():
 def read_page():
     """Read the current page without changing it."""
     return observe_page()
+
+
+def take_screenshot():
+    """Save a screenshot of the current page and return its file path."""
+    # A screenshot needs an open browser page.
+    if page is None:
+        raise RuntimeError("No browser page is open. Call start_browser() first.")
+
+    # Keep all screenshots in one folder. Create it if it is missing.
+    folder = "screenshots"
+    os.makedirs(folder, exist_ok=True)
+
+    # Use the time in milliseconds so a new file never overwrites an old one.
+    milliseconds = int(time.time() * 1000)
+    path = os.path.join(folder, "screenshot_" + str(milliseconds) + ".png")
+
+    # Ask Playwright to save the whole page as a PNG file.
+    page.screenshot(path=path, full_page=True)
+
+    # Do not trust the command alone: look at the file on disk.
+    file_exists = os.path.exists(path)
+    file_size = 0
+    if file_exists:
+        file_size = os.path.getsize(path)
+    
+    # Return what we observed, as a dictionary.
+    return {
+        "screenshot": path,
+        "file_exists": file_exists,
+        "file_size_bytes": file_size,
+        "url": page.url,
+        "check_result": file_exists and file_size > 0,
+    }
